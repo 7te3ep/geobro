@@ -1,0 +1,21 @@
+{
+   "name": "geobro",
+   "version": "1.0.0",
+   "description": "",
+   "main": "index.js",
+   "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1"
+   },
+   "type": "commonjs",
+   "author": "",
+   "license": "ISC",
+   "dependencies": {
+      "codegrid-js": "github:hlaw/codegrid-js",
+      "ejs": "^3.1.10",
+      "express": "^4.19.2",
+      "firebase": "^10.11.0",
+      "nodemon": "^3.1.0",
+      "three": "^0.163.0",
+      "three-globe": "^2.31.0"
+   }
+}

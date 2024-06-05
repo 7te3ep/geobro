@@ -1,0 +1,139 @@
+<script type="module">
+   import * as THREE from 'three';
+   import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+   import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+   let ctr = 0
+   const scene = new THREE.Scene();
+   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+   const raycaster = new THREE.Raycaster();
+
+   const renderer = new THREE.WebGLRenderer({ antialias: false, precision: 'highp' });
+   renderer.setViewport(0, 0, window.innerWidth, window.innerHeight);
+   renderer.setPixelRatio(window.devicePixelRatio)
+   renderer.setSize(window.innerWidth, window.innerHeight);
+   renderer.capabilities.getMaxAnisotropy()
+   document.body.appendChild(renderer.domElement)
+
+   const loader = new THREE.TextureLoader()
+   const texture = loader.load('assets/map.png')
+   texture.generateMipmaps = true;
+   texture.minFilter = THREE.LinearMipMapLinearFilter;
+   texture.magFilter = THREE.NearestFilter;
+   texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+   const uv = new Image()
+   uv.src = "assets/uvmap.png"
+
+
+   texture.wrapS = THREE.RepeatWrapping;
+   texture.wrapT = THREE.RepeatWrapping;
+   texture.repeat.set(1, 1);
+
+   var geometry = new THREE.SphereGeometry(1, 64, 64);
+   var material = new THREE.MeshBasicMaterial({ map: texture });
+   var earth = new THREE.Mesh(geometry, material);
+
+
+   const controls = new OrbitControls(camera, renderer.domElement);
+   controls.enablePan = false
+   controls.enableDamping = true
+   controls.dampingFactor = 0.1
+   controls.minDistance = 1.15
+   controls.maxDistance = 2
+   controls.zoomSpeed = 0.5
+
+   const light = new THREE.AmbientLight(0xbababa, 3.5);
+   const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+   dirLight.position.set(5, 5, 0)
+   camera.position.z = 2;
+
+   scene.add(earth, light, dirLight);
+
+   const colorMapCanvas = document.createElement('canvas');
+   const colorMapContext = colorMapCanvas.getContext('2d');
+   //document.body.appendChild(colorMapCanvas)
+   uv.addEventListener('load', () => {
+      colorMapCanvas.width = uv.width;
+      colorMapCanvas.height = uv.height;
+      colorMapContext.drawImage(uv, 0, 0);
+   });
+
+   async function getCountry(x, y) {
+      const pos = new THREE.Vector2()
+      pos.x = (x / window.innerWidth) * 2 - 1;
+      pos.y = -(y / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pos, camera);
+
+      const intersects = raycaster.intersectObject(earth);
+      if (intersects.length > 0) {
+         const intersect = intersects[0];
+         const uv = intersect.uv;
+         uv.x = THREE.MathUtils.clamp(uv.x, 0, 1);
+         uv.y = THREE.MathUtils.clamp(uv.y, 0, 1);
+         const color = getColorFromUV(uv);
+         const country = await fetch(`/country`,
+            {
+               method: "POST",
+               body: JSON.stringify({ color: color }),
+               headers: {
+                  "Content-Type": "application/json"
+               }
+            }
+         )
+         const res = await country.json()
+         return res.code
+      }
+   }
+   function getColorFromUV(uv) {
+      const x = Math.floor(uv.x * colorMapCanvas.width);
+      const y = Math.floor((1 - uv.y) * colorMapCanvas.height);
+      const pixel = colorMapContext.getImageData(x, y, 1, 1).data;
+      return `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+   }
+
+   function updateCountry() {
+      getCountry(window.innerWidth / 2, window.innerHeight / 2).then(res => {
+         document.getElementById('country').innerHTML = res
+      })
+   }
+
+   function animate() {
+      controls.rotateSpeed = controls.getDistance() - 1.1
+      controls.update();
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+   }
+
+   animate();
+   //const colors = {}
+   //const countries = {}
+   //document.querySelectorAll('g').forEach(el=>{
+   //   const gen = ()=> `rgb(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)})`
+   //   let color = gen()
+   //   while (colors[color]){
+   //      color = gen()
+   //   }
+   //   colors[color] = true
+   //   el.style.fill = color
+   //   countries[color] = el.className.baseVal.split(" ")[1]
+   //})
+   //console.log(countries)
+   let clicked = false;
+   window.addEventListener('mousedown', (event) => {
+      clicked = true
+   });
+
+   document.addEventListener('mousemove', e => { clicked = false; });
+   document.addEventListener('mouseup', e => {
+      if (clicked) {
+         getCountry(e.clientX, e.clientY).then(res => {
+            document.getElementById('country').innerHTML = res
+         })
+      }
+
+      // Reset this back to false for next time
+      clicked = false;
+   });
+   document.getElementById('guess').addEventListener('click', () => { updateCountry() })
+
+
+</script>

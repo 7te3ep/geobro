@@ -1,0 +1,62 @@
+* {
+   padding: 0rem;
+   margin: 0rem;
+}
+
+svg {
+   position: absolute;
+   stroke: #111 ;
+   stroke-width: 1px;
+   background-color: rgb(126, 185, 224);
+}
+
+g {
+   fill :beige ;
+}
+
+body {
+   display: flex;
+   align-items: center;
+   justify-content: center;
+}
+
+#country {
+   pointer-events: none;
+   color: #333;
+   position: absolute;
+   padding-bottom: 50px;
+}
+
+button {
+   inset: none;
+   border: none;
+}
+
+#guess {
+   font-size: 3rem;
+   font-weight: bolder;
+   box-shadow: 0px 0px 10px black;
+   position: absolute;
+   bottom: 10vh;
+   width: 90vw;
+   max-width: 500px;
+   height: 70px;
+   border-radius: 20px;
+   -webkit-border-radius: 20px;
+   -moz-border-radius: 20px;
+   -ms-border-radius: 20px;
+   -o-border-radius: 20px;
+}
+
+#pointer {
+   display: none;
+   position: absolute;
+   width: 10px;
+   height: 10px;
+   background-color: black;
+   border-radius: 100%;
+   -webkit-border-radius: 100%;
+   -moz-border-radius: 100%;
+   -ms-border-radius: 100%;
+   -o-border-radius: 100%;
+}
