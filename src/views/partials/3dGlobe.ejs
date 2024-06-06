@@ -15,22 +15,28 @@
    document.body.appendChild(renderer.domElement)
 
    const loader = new THREE.TextureLoader()
-   const texture = loader.load('assets/map.png')
-   texture.generateMipmaps = true;
-   texture.minFilter = THREE.LinearMipMapLinearFilter;
-   texture.magFilter = THREE.NearestFilter;
-   texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-   const uv = new Image()
-   uv.src = "assets/uvmap.png"
+   const textures = [loader.load('assets/mapP1.png'),loader.load('assets/mapP2.png')]
+   textures.forEach(t =>{
+      t.generateMipmaps = true;
+      t.minFilter = THREE.LinearMipMapLinearFilter;
+      t.magFilter = THREE.NearestFilter;
+      t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+   })
 
+   var material1 = new THREE.MeshBasicMaterial({ map: textures[0] });
+   var material2 = new THREE.MeshBasicMaterial({ map: textures[1] });
 
-   texture.wrapS = THREE.RepeatWrapping;
-   texture.wrapT = THREE.RepeatWrapping;
-   texture.repeat.set(1, 1);
+   const hemisphereGeometry1 = new THREE.SphereGeometry(1, 32, 32, 0, Math.PI, 0, Math.PI);
+   const hemisphereGeometry2 = new THREE.SphereGeometry(1, 32, 32, Math.PI, Math.PI, 0, Math.PI);
 
-   var geometry = new THREE.SphereGeometry(1, 64, 64);
-   var material = new THREE.MeshBasicMaterial({ map: texture });
-   var earth = new THREE.Mesh(geometry, material);
+   const hemisphere1 = new THREE.Mesh(hemisphereGeometry1, material1);
+   const hemisphere2 = new THREE.Mesh(hemisphereGeometry2, material2);
+   const earth = new THREE.Group();
+   hemisphere1.name = "1"
+   hemisphere2.name = "2"
+   earth.add(hemisphere1);
+   earth.add(hemisphere2);
+   //var earth = new THREE.Mesh(geometry, material);
 
 
    const controls = new OrbitControls(camera, renderer.domElement);
@@ -48,13 +54,24 @@
 
    scene.add(earth, light, dirLight);
 
-   const colorMapCanvas = document.createElement('canvas');
-   const colorMapContext = colorMapCanvas.getContext('2d');
-   //document.body.appendChild(colorMapCanvas)
-   uv.addEventListener('load', () => {
-      colorMapCanvas.width = uv.width;
-      colorMapCanvas.height = uv.height;
-      colorMapContext.drawImage(uv, 0, 0);
+   const uv1 = new Image()
+   uv1.src = "assets/uvmapP1.png"
+   const uv2 = new Image()
+   uv2.src = "assets/uvmapP2.png"
+
+   const colorMapCanvas1 = document.createElement('canvas');
+   const colorMapContext1 = colorMapCanvas1.getContext('2d');
+   uv1.addEventListener('load', () => {
+      colorMapCanvas1.width = uv1.width;
+      colorMapCanvas1.height = uv1.height;
+      colorMapContext1.drawImage(uv1, 0, 0);
+   });
+   const colorMapCanvas2 = document.createElement('canvas');
+   const colorMapContext2 = colorMapCanvas2.getContext('2d');
+   uv2.addEventListener('load', () => {
+      colorMapCanvas2.width = uv2.width;
+      colorMapCanvas2.height = uv2.height;
+      colorMapContext2.drawImage(uv2, 0, 0);
    });
 
    async function getCountry(x, y) {
@@ -69,7 +86,7 @@
          const uv = intersect.uv;
          uv.x = THREE.MathUtils.clamp(uv.x, 0, 1);
          uv.y = THREE.MathUtils.clamp(uv.y, 0, 1);
-         const color = getColorFromUV(uv);
+         const color = getColorFromUV(uv,intersect.object.name);
          const country = await fetch(`/country`,
             {
                method: "POST",
@@ -83,7 +100,9 @@
          return res.code
       }
    }
-   function getColorFromUV(uv) {
+   function getColorFromUV(uv,hemi) {
+      const colorMapCanvas = hemi == "1" ? colorMapCanvas2 : colorMapCanvas2
+      const colorMapContext = hemi == "1" ? colorMapContext1 : colorMapContext2
       const x = Math.floor(uv.x * colorMapCanvas.width);
       const y = Math.floor((1 - uv.y) * colorMapCanvas.height);
       const pixel = colorMapContext.getImageData(x, y, 1, 1).data;
